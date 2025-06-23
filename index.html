@@ -5,18 +5,98 @@
   <title>Statistiky hráčů</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    body { font-family: Arial; background: #111; color: #eee; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
-    th { background-color: #222; }
-    tr:nth-child(even) { background-color: #1a1a1a; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1e1e2f;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ffd700;
+      margin-bottom: 10px;
+    }
+
+    #controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    select {
+      background-color: #2c2c3c;
+      color: #fff;
+      padding: 5px 10px;
+      border: 1px solid #555;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .player-card {
+      background-color: #2c2c3c;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .player-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .team-logo {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 8px;
+    }
+
+    .player-name {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 6px;
+      color: #ffffff;
+    }
+
+    .player-info {
+      font-size: 13px;
+      color: #aaaaaa;
+      margin: 4px 0;
+    }
+
+    .highlight {
+      color: #ffd700;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h1>Statistiky hráčů (KDA)</h1>
-  <div id="table-container">Načítání...</div>
+  <h1>Statistiky hráčů</h1>
+  <div id="controls">
+    <label for="sortSelect">Řadit podle:</label>
+    <select id="sortSelect">
+      <option value="KDA">KDA</option>
+      <option value="MVP">MVP</option>
+      <option value="Kills">Kills</option>
+      <option value="Tým">Tým</option>
+      <option value="Role">Pozice (Role)</option>
+    </select>
+  </div>
+
+  <div id="grid">Načítám data...</div>
 
   <script>
+    let players = [];
+
     async function loadXLSXSheet(url, sheetName) {
       const res = await fetch(url);
       const ab = await res.arrayBuffer();
@@ -26,23 +106,46 @@
     }
 
     async function main() {
-      try {
-        const data = await loadXLSXSheet('League_stats.xlsx', 'KDA');
-        const container = document.getElementById('table-container');
-        let html = '<table><tr><th>Hráč</th><th>Role</th><th>Tým</th><th>KDA</th><th>Počet her</th></tr>';
-        data.forEach(row => {
-          html += `<tr>
-            <td>${row['Player']}</td>
-            <td>${row['Role']}</td>
-            <td>${row['Tým']}</td>
-            <td>${row['KDA']}</td>
-            <td>${row['Počet Her']}</td>
-          </tr>`;
-        });
-        html += '</table>';
-        container.innerHTML = html;
-      } catch (e) {
-        document.getElementById('table-container').textContent = 'Chyba při načítání: ' + e;
+      const data = await loadXLSXSheet('League_stats.xlsx', 'KDA');
+      players = data.filter(p => p['Tým']);
+
+      document.getElementById('sortSelect').addEventListener('change', () =>
+        renderGrid(document.getElementById('sortSelect').value)
+      );
+
+      renderGrid('KDA');
+    }
+
+    function renderGrid(sortBy) {
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+
+      const roleOrder = { TOP: 1, JNG: 2, MID: 3, ADC: 4, SUP: 5, SUB: 6 };
+
+      players.sort((a, b) => {
+        if (sortBy === "Tým") {
+          return (a["Tým"] || "").localeCompare(b["Tým"] || "");
+        } else if (sortBy === "Role") {
+          return (roleOrder[a["Role"]] || 99) - (roleOrder[b["Role"]] || 99);
+        } else {
+          const num = val => parseFloat((val || '0').toString().replace(',', '.')) || 0;
+          return num(b[sortBy]) - num(a[sortBy]);
+        }
+      });
+
+      for (const p of players) {
+        const logoPath = `images/${p["Tým"]}.png`;
+        const card = document.createElement("div");
+        card.className = "player-card";
+    	card.innerHTML = `
+      	  <img src="${logoPath}" alt="${p["Tým"]}" class="team-logo" onerror="this.src='https://via.placeholder.com/48?text=No+Logo'">
+      	  <div class="player-info">Role: ${p["Role"]}</div>
+      	  <div class="player-name">${p["Player"]}</div>
+      	  <div class="player-info highlight">KDA: ${p["KDA"]}</div>
+      	  <div class="player-info">MVP: ${p["MVP"]}</div>
+      	  <div class="player-info">Kills: ${p["Kills"]}</div>
+    	`;
+        grid.appendChild(card);
       }
     }
 
