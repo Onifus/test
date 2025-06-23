@@ -186,16 +186,19 @@ async function loadMatchStats() {
   const deathsIdx = idx('death');
   const assistsIdx = idx('assist');
 
+  const safeTrim = val => (typeof val === 'string' ? val.trim() : (val ?? ''));
+  
   matchRows = dataRows.map(row => ({
-    champ: (row[champIdx] || '').trim(),
-    player: (row[playerIdx] || '').trim(),
-    team: (row[teamIdx] || '').trim(),
-    enemy: (row[enemyIdx] || '').trim(),
-    result: (row[resultIdx] || '').trim(),
+    champ: safeTrim(row[champIdx]),
+    player: safeTrim(row[playerIdx]),
+    team: safeTrim(row[teamIdx]),
+    enemy: safeTrim(row[enemyIdx]),
+    result: safeTrim(row[resultIdx]),
     k: row[killsIdx] ?? 0,
     d: row[deathsIdx] ?? 0,
     a: row[assistsIdx] ?? 0
   }));
+
 }
 
 
