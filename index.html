@@ -119,7 +119,7 @@
       <h2 id="modal-title">Zápasy pro: </h2>
       <table id="modal-table">
         <thead>
-          <tr><th>Hřáč</th><th>Tým</th><th>Enemy</th><th>Výsledek</th><th>K</th><th>D</th><th>A</th></tr>
+          <tr><th>Hráč</th><th>Tým</th><th>Enemy</th><th>Výsledek</th><th>K</th><th>D</th><th>A</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -127,123 +127,118 @@
   </div>
 
   <script>
-  let matchRows = [];
+    let champs = [];
+    let matchRows = [];
 
-async function loadChampionStats() {
-  const res = await fetch('League_stats.xlsx');
-  const ab = await res.arrayBuffer();
-  const wb = XLSX.read(ab, { type: 'array' });
-  const sheet = wb.Sheets['Pick-Ban'];
-  const raw = XLSX.utils.sheet_to_json(sheet, { range: 1, header: 1 });
-  const headers = raw[0];
-  const data = raw.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => {
-      obj[h] = row[i];
-    });
-    return obj;
-  });
+    const toStr = val => (val != null ? String(val).trim() : '');
 
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
+    async function loadChampionStats() {
+      const res = await fetch('League_stats.xlsx');
+      const ab = await res.arrayBuffer();
+      const wb = XLSX.read(ab, { type: 'array' });
+      const sheet = wb.Sheets['Pick-Ban'];
+      const raw = XLSX.utils.sheet_to_json(sheet, { range: 1, header: 1 });
+      const headers = raw[0];
+      const data = raw.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((h, i) => {
+          obj[h] = row[i];
+        });
+        return obj;
+      });
 
-  for (const row of data) {
-    const card = document.createElement("div");
-    card.className = "champ-card";
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
 
-    card.innerHTML = `
-      <div class="champ-name">${row['Champ']}</div>
-      <div class="champ-info highlight">Winrate: ${row['Winrate'] || 'N/A'}</div>
-      <div class="champ-info">Picks: ${row['Picks']}</div>
-      <div class="champ-info">Bans: ${row['Bans']}</div>
-      <div class="champ-info">Wins: ${row['Wins']}, Loses: ${row['Loses']}</div>
-      <div class="champ-info">Banrate: ${row['Banrate'] || 'N/A'}</div>
-    `;
+      for (const row of data) {
+        champs.push(row);
+        const card = document.createElement("div");
+        card.className = "champ-card";
 
-    card.onclick = () => openModal(row['Champ']);
-    grid.appendChild(card);
-  }
-}
+        card.innerHTML = `
+          <div class="champ-name">${row['Champ']}</div>
+          <div class="champ-info highlight">Winrate: ${row['Winrate'] || 'N/A'}</div>
+          <div class="champ-info">Picks: ${row['Picks']}</div>
+          <div class="champ-info">Bans: ${row['Bans']}</div>
+          <div class="champ-info">Wins: ${row['Wins']}, Loses: ${row['Loses']}</div>
+          <div class="champ-info">Banrate: ${row['Banrate'] || 'N/A'}</div>
+        `;
 
-async function loadMatchStats() {
-  const res = await fetch('Stats.xlsx');
-  const ab = await res.arrayBuffer();
-  const wb = XLSX.read(ab, { type: 'array' });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-  const headers = rows[0];
-  const dataRows = rows.slice(1);
-
-  const idx = name => headers.findIndex(h => (h || '').toLowerCase().includes(name.toLowerCase()));
-
-  const champIdx = idx('champ');
-  const playerIdx = idx('hráč');
-  const teamIdx = idx('tým');
-  const enemyIdx = idx('enemy');
-  const resultIdx = idx('win');
-  const killsIdx = idx('kill');
-  const deathsIdx = idx('death');
-  const assistsIdx = idx('assist');
-
-  const safeTrim = val => (typeof val === 'string' ? val.trim() : (val ?? ''));
-  
-  matchRows = dataRows.map(row => ({
-    champ: safeTrim(row[champIdx]),
-    player: safeTrim(row[playerIdx]),
-    team: safeTrim(row[teamIdx]),
-    enemy: safeTrim(row[enemyIdx]),
-    result: safeTrim(row[resultIdx]),
-    k: row[killsIdx] ?? 0,
-    d: row[deathsIdx] ?? 0,
-    a: row[assistsIdx] ?? 0
-  }));
-
-}
-
-
-function openModal(champName) {
-  const modal = document.getElementById('modal');
-  const title = document.getElementById('modal-title');
-  const tbody = document.getElementById('modal-table').querySelector('tbody');
-
-  title.textContent = `Zápasy pro: ${champName}`;
-  tbody.innerHTML = '';
-
-  const filtered = matchRows.filter(m => m.champ === champName);
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Žádná data</td></tr>`;
-  } else {
-    for (const row of filtered) {
-      const tr = document.createElement('tr');
-      const resultColor = row.result === 'Win' ? 'limegreen' : 'crimson';
-      tr.innerHTML = `
-        <td>${row.player}</td>
-        <td>${row.team}</td>
-        <td>${row.enemy}</td>
-        <td style="color:${resultColor}; font-weight:bold;">${row.result}</td>
-        <td>${row.k}</td>
-        <td>${row.d}</td>
-        <td>${row.a}</td>
-      `;
-      tbody.appendChild(tr);
+        card.onclick = () => openModal(row['Champ']);
+        grid.appendChild(card);
+      }
     }
-  }
 
-  modal.style.display = 'block';
-}
+    async function loadMatchStats() {
+      const res = await fetch('Stats.xlsx');
+      const ab = await res.arrayBuffer();
+      const wb = XLSX.read(ab, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const headers = raw[0];
+      const data = raw.slice(1);
 
-function closeModal() {
-  document.getElementById('modal').style.display = 'none';
-}
+      const champIdx = headers.findIndex(h => h?.toLowerCase().includes('champ'));
+      const playerIdx = headers.findIndex(h => h?.toLowerCase().includes('hrá'));
+      const teamIdx = headers.findIndex(h => h?.toLowerCase().includes('tým'));
+      const enemyIdx = headers.findIndex(h => h?.toLowerCase().includes('enemy'));
+      const resultIdx = headers.findIndex(h => h?.toLowerCase().includes('win'));
+      const killsIdx = headers.findIndex(h => h?.toLowerCase().includes('kill'));
+      const deathsIdx = headers.findIndex(h => h?.toLowerCase().includes('death'));
+      const assistsIdx = headers.findIndex(h => h?.toLowerCase().includes('assist'));
 
-(async () => {
-  await loadMatchStats();
-  await loadChampionStats();
-})();
+      matchRows = data.map(row => ({
+        champ: toStr(row[champIdx]),
+        player: toStr(row[playerIdx]),
+        team: toStr(row[teamIdx]),
+        enemy: toStr(row[enemyIdx]),
+        result: toStr(row[resultIdx]),
+        k: row[killsIdx] ?? '',
+        d: row[deathsIdx] ?? '',
+        a: row[assistsIdx] ?? ''
+      }));
+    }
 
+    function openModal(champName) {
+      const modal = document.getElementById('modal');
+      const title = document.getElementById('modal-title');
+      const tbody = document.getElementById('modal-table').querySelector('tbody');
 
+      title.textContent = `Zápasy pro: ${champName}`;
+      tbody.innerHTML = '';
+
+      const filtered = matchRows.filter(m => m.champ === champName);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Žádná data</td></tr>`;
+      } else {
+        for (const row of filtered) {
+          const tr = document.createElement('tr');
+          const resultColor = row.result === 'Win' ? 'limegreen' : 'crimson';
+          tr.innerHTML = `
+            <td>${row.player}</td>
+            <td>${row.team}</td>
+            <td>${row.enemy}</td>
+            <td style="color:${resultColor}; font-weight:bold;">${row.result}</td>
+            <td>${row.k}</td>
+            <td>${row.d}</td>
+            <td>${row.a}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      }
+
+      modal.style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    (async () => {
+      await loadMatchStats();
+      await loadChampionStats();
+    })();
   </script>
 </body>
 </html>
