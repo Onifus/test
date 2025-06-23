@@ -170,19 +170,34 @@ async function loadMatchStats() {
   const ab = await res.arrayBuffer();
   const wb = XLSX.read(ab, { type: 'array' });
   const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet);
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-  matchRows = rows.map(r => ({
-    champ: r['ChampovŽ']?.trim(),
-    player: r['Hr‡‹']?.trim(),
-    team: r['Tům']?.trim(),
-    enemy: r['Enemy']?.trim(),
-    result: r['Win/Loss']?.trim(),
-    k: r['Kills'],
-    d: r['Deaths'],
-    a: r['Assists']
+  const headers = rows[0];
+  const dataRows = rows.slice(1);
+
+  const idx = name => headers.findIndex(h => (h || '').toLowerCase().includes(name.toLowerCase()));
+
+  const champIdx = idx('champ');
+  const playerIdx = idx('hráč');
+  const teamIdx = idx('tým');
+  const enemyIdx = idx('enemy');
+  const resultIdx = idx('win');
+  const killsIdx = idx('kill');
+  const deathsIdx = idx('death');
+  const assistsIdx = idx('assist');
+
+  matchRows = dataRows.map(row => ({
+    champ: (row[champIdx] || '').trim(),
+    player: (row[playerIdx] || '').trim(),
+    team: (row[teamIdx] || '').trim(),
+    enemy: (row[enemyIdx] || '').trim(),
+    result: (row[resultIdx] || '').trim(),
+    k: row[killsIdx] ?? 0,
+    d: row[deathsIdx] ?? 0,
+    a: row[assistsIdx] ?? 0
   }));
 }
+
 
 function openModal(champName) {
   const modal = document.getElementById('modal');
