@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>Statistiky hráčů</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial; background: #111; color: #eee; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+    th { background-color: #222; }
+    tr:nth-child(even) { background-color: #1a1a1a; }
+  </style>
+</head>
+<body>
+  <h1>Statistiky hráčů (KDA)</h1>
+  <div id="table-container">Načítání...</div>
+
+  <script>
+    async function loadXLSXSheet(url, sheetName) {
+      const res = await fetch(url);
+      const ab = await res.arrayBuffer();
+      const wb = XLSX.read(ab, { type: 'array' });
+      const sheet = wb.Sheets[sheetName];
+      return XLSX.utils.sheet_to_json(sheet);
+    }
+
+    async function main() {
+      try {
+        const data = await loadXLSXSheet('League_stats.xlsx', 'KDA');
+        const container = document.getElementById('table-container');
+        let html = '<table><tr><th>Hráč</th><th>Role</th><th>Tým</th><th>KDA</th><th>Počet her</th></tr>';
+        data.forEach(row => {
+          html += `<tr>
+            <td>${row['Player']}</td>
+            <td>${row['Role']}</td>
+            <td>${row['Tým']}</td>
+            <td>${row['KDA']}</td>
+            <td>${row['Počet Her']}</td>
+          </tr>`;
+        });
+        html += '</table>';
+        container.innerHTML = html;
+      } catch (e) {
+        document.getElementById('table-container').textContent = 'Chyba při načítání: ' + e;
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
